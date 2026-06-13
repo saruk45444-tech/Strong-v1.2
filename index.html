@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>⚡ DEEP MIND QUANT AI • HIDE/UNHIDE ALL BOXES</title>
+    <script src="https://s3.tradingview.com/tv.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
+        body { background: #f4f8fc; padding: 12px; }
+        .app-container { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+        .card { background: white; border-radius: 24px; border: 1px solid #e2edf2; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.03); transition: all 0.2s; }
+        .card-header { padding: 14px 20px; border-bottom: 1px solid #eef2f6; font-weight: 800; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .card-body { padding: 16px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; margin-bottom: 20px; }
+        .metric-tile { background: #f8fafc; padding: 12px; border-radius: 16px; text-align: center; border: 1px solid #e2e8f0; }
+        .metric-label { font-size: 0.7rem; color: #475569; font-weight: 700; text-transform: uppercase; }
+        .metric-value { font-size: 1.2rem; font-weight: 800; color: #0f172a; }
+        .table-wrapper { overflow-x: auto; border-radius: 16px; border: 1px solid #eef2f6; margin: 16px 0; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        .data-table th { background: #f8fafc; padding: 10px 6px; font-weight: 800; color: #1e293b; text-align: center; border-bottom: 1px solid #e2e8f0; }
+        .data-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #f1f5f9; white-space: nowrap; font-weight: 600; }
+        .btn { background: white; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 40px; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: #0284c7; border-color: #0284c7; color: white; }
+        .btn-danger { background: #ef4444; border-color: #ef4444; color: white; }
+        .trend-badge { padding: 4px 12px; border-radius: 40px; font-weight: 800; font-size: 0.7rem; color: white; display: inline-block; }
+        .trend-bullish { background: #10b981; }
+        .trend-bearish { background: #ef4444; }
+        .trend-neutral { background: #f59e0b; }
+        .positive { color: #10b981; }
+        .negative { color: #ef4444; }
+        
+        /* --- CHART SIZE INCREASED HERE --- */
+        .chart-box-wrapper { position: relative; padding-top: 65%; min-height: 550px; }
+        .chart-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        @media (max-width: 700px) { .chart-box-wrapper { padding-top: 100%; min-height: 450px; } }
+        
+        .alert-container { background: #1e293b; border-radius: 20px; padding: 12px 16px; max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; }
+        .alert-item { background: #0f172a; color: #facc15; padding: 8px 12px; margin-bottom: 6px; border-radius: 12px; border-left: 4px solid #facc15; animation: fadeIn 0.2s ease; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+        .alert-item.warning { border-left-color: #ef4444; color: #fca5a5; }
+        .alert-item.info { border-left-color: #3b82f6; color: #93c5fd; }
+        .alert-time { font-size: 0.65rem; color: #94a3b8; margin-left: 12px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .hide-toggle-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #64748b; padding: 0 8px; transition: 0.2s; }
+        .hide-toggle-btn:hover { color: #0284c7; transform: scale(1.1); }
+        .card.hidden-card { display: none; }
+        .coin-clickable { cursor: pointer; color: #0284c7; font-weight: 800; transition: 0.1s; }
+        .coin-clickable:hover { text-decoration: underline; opacity: 0.8; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="card" id="headerCard">
+        <div class="card-header">
+            <div><span style="font-size:1.3rem; font-weight:900;">⚡ DEEP MIND QUANT AI • HIDE/UNHIDE ALL</span>
+            <div style="margin-top: 6px;"><span style="font-size:0.7rem;">BTC TREND:</span> <span id="btcTrendBadge" class="trend-badge trend-neutral">LOADING...</span></div></div>
+            <div style="display: flex; gap: 8px;">
+                <button id="voiceBtn" class="btn" style="background:#fee2e2;">🔊 VOICE ON</button>
+                <button id="refreshBtn" class="btn btn-primary">🔄 REFRESH ALL</button>
+                <button id="resetBtn" class="btn btn-danger">🗑️ RESET</button>
+                <button id="showAllBtn" class="btn" style="background:#e2e8f0;">👁️ SHOW ALL SECTIONS</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" id="alertBoxCard">
+        <div class="card-header">
+            <span>🔔 LIVE VOICE ALERTS <span style="font-size:0.7rem; font-weight:normal;">(auto-clear 5min)</span></span>
+            <button class="hide-toggle-btn" onclick="toggleCardVisibility('alertBoxCard')">🗕</button>
+        </div>
+        <div class="card-body" style="padding: 12px;">
+            <div id="alertMessagesBox" class="alert-container">
+                <div style="color:#94a3b8; text-align:center; padding:8px;">⏳ Waiting for price moves or signals...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" id="zoroCard">
+        <div class="card-header">
+            <span>🛡️ ZORO LIVE TERMINAL (TREND-LOCKED)</span>
+            <div style="display: flex; gap: 10px;">
+                <select id="coinSelect"><option value="ALL">ALL COINS</option></select>
+                <button id="scanBtn" class="btn-primary btn">⚡ SCAN NOW</button>
+                <button class="hide-toggle-btn" onclick="toggleCardVisibility('zoroCard')">🗕</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px,1fr)); gap: 12px; margin-bottom: 20px;">
+                <div class="metric-tile"><div class="metric-label">Balance</div><div class="metric-value" id="balanceVal">$10,000</div></div>
+                <div class="metric-tile"><div class="metric-label">Floating PnL</div><div class="metric-value" id="floatPnL">$0</div></div>
+                <div class="metric-tile"><div class="metric-label">Realized PnL</div><div class="metric-value" id="realPnL">$0</div></div>
+                <div class="metric-tile"><div class="metric-label">Win Rate</div><div class="metric-value" id="winRate">0%</div></div>
+                <div class="metric-tile"><div class="metric-label">Total Trades</div><div class="metric-value" id="totalTrades">0</div></div>
+                <div class="metric-tile"><div class="metric-label">Active Pos.</div><div class="metric-value" id="activeCount">0/6</div></div>
+                <div class="metric-tile"><div class="metric-label">Coins Scanned</div><div class="metric-value" id="scannedCount">0</div></div>
+            </div>
+            <h4 style="font-size:0.75rem; margin:10px 0;">📊 ACTIVE POSITIONS</h4>
+            <div class="table-wrapper"><table class="data-table"><thead><tr><th>#</th><th>ASSET</th><th>SIDE</th><th>ENTRY</th><th>LIVE</th><th>SIZE</th><th>MARGIN</th><th>LEV</th><th>SL</th><th>TP</th><th>PnL%</th><th>CLOSE</th></tr></thead><tbody id="activeTbody"><tr><td colspan="12">No active positions</td></tr></tbody></table></div>
+            <h4 style="font-size:0.75rem; margin:10px 0;">📋 SIGNAL LOG (LAST 20) — REAL LIVE DATA ✅</h4>
+            <div class="table-wrapper"><table class="data-table"><thead><tr><th>TIME</th><th>ASSET</th><th>SIDE</th><th>RSI14</th><th>RSI7</th><th>EMA</th><th>CVD%</th><th>OB%</th><th>FUND%</th><th>SCORE</th><th>CONF%</th><th>ENTRY</th><th>SL</th><th>TP</th><th>RESULT</th></tr></thead><tbody id="signalLogTbody"><tr><td colspan="15">Waiting for signals...</td></tr></tbody></table></div>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 16px;" id="metricsGrid">
+        <div class="card" id="rsiCard"><div class="card-header">📈 REAL RSI (BTC) <button class="hide-toggle-btn" onclick="toggleCardVisibility('rsiCard')">🗕</button></div><div class="card-body"><div class="metric-grid"><div class="metric-tile"><div class="metric-label">RSI (14)</div><div class="metric-value" id="btcRsi14">--</div></div><div class="metric-tile"><div class="metric-label">RSI (7)</div><div class="metric-value" id="btcRsi7">--</div></div></div></div></div>
+        <div class="card" id="atrCard"><div class="card-header">🛑 ATR STOP LOSS <button class="hide-toggle-btn" onclick="toggleCardVisibility('atrCard')">🗕</button></div><div class="card-body"><div class="metric-grid"><div class="metric-tile"><div class="metric-label">ATR %</div><div class="metric-value" id="atrPct">0%</div></div><div class="metric-tile"><div class="metric-label">SL LONG</div><div class="metric-value" id="slLongVal">$0</div></div></div></div></div>
+        <div class="card" id="oiCard"><div class="card-header">📊 OI & FUNDING <button class="hide-toggle-btn" onclick="toggleCardVisibility('oiCard')">🗕</button></div><div class="card-body"><div class="metric-grid"><div class="metric-tile"><div class="metric-label">OI VALUE</div><div class="metric-value" id="oiVal">$0B</div></div><div class="metric-tile"><div class="metric-label">FUNDING RATE</div><div class="metric-value" id="fundVal">0%</div></div></div></div></div>
+        <div class="card" id="cvdCard"><div class="card-header">📊 CVD (VOLUME DELTA) <button class="hide-toggle-btn" onclick="toggleCardVisibility('cvdCard')">🗕</button></div><div class="card-body"><div class="metric-grid"><div class="metric-tile"><div class="metric-label">CVD</div><div class="metric-value" id="cvdNum">0</div></div><div class="metric-tile"><div class="metric-label">BUY VOL</div><div class="metric-value positive" id="buyVolM">0M</div></div><div class="metric-tile"><div class="metric-label">SELL VOL</div><div class="metric-value negative" id="sellVolM">0M</div></div></div></div></div>
+    </div>
+
+    <!-- BIG SIZE CHART BOX -->
+    <div class="card" id="chartCard">
+        <div class="card-header">
+            <span id="chartSymbol" style="font-weight: 900; color: #0284c7;">BTCUSDT</span> 
+            <div>
+                <input id="chartInput" placeholder="Symbol (e.g. ETH)" style="border:1px solid #ccc; border-radius:20px; padding:6px 14px; font-size:0.75rem; width:130px;"> 
+                <button id="applyChartBtn" class="btn btn-primary">APPLY</button>
+                <button class="hide-toggle-btn" onclick="toggleCardVisibility('chartCard')">🗕</button>
+            </div>
+        </div>
+        <div class="chart-box-wrapper">
+            <div id="tvChartContainer" class="chart-box"></div>
+        </div>
+    </div>
+
+    <div class="card" id="matrixCard"><div class="card-header">📊 SIGNAL MATRIX <input id="matrixFilter" placeholder="Filter coin..." style="border:1px solid #ccc; border-radius:20px; padding:4px 12px;"><button class="hide-toggle-btn" onclick="toggleCardVisibility('matrixCard')">🗕</button></div><div class="card-body"><div class="table-wrapper"><table class="data-table"><thead><tr><th>#</th><th>ASSET</th><th>PRICE</th><th>1H %</th><th>RSI</th><th>SIGNAL</th></tr></thead><tbody id="matrixTbody"><tr><td colspan="6">Loading coins...</td></tr></tbody></table></div></div></div>
+</div>
+
+<script>
+const BINANCE = "https://fapi.binance.com";
+const COINS = ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","DOT","LINK","MATIC","UNI","ATOM","LTC","ETC","FIL","APT","ARB","OP","INJ","FET","ENA","LDO","HBAR","XLM","NEAR","RENDER","JUP","WLD","ONDO","SUI","SEI","AAVE","CRV","GALA","SAND","AXS","ALGO","VET","QNT","MKR","COMP","ZEC","ZRO","PENDLE","STX","TRUMP","ENS","TIA","API3"];
+const ALL_SYMBOLS = COINS.map(c=>c+"USDT");
+
+let btcTrend = "NEUTRAL";
+let activeTrades = new Map();
+let signalLog = [];
+let balance = 10000;
+let realizedPnL = 0;
+let totalTradesClosed = 0;
+let totalWins = 0;
+let voiceMuted = false;
+let lastPrices = new Map();
+let tvWidget = null;
+
+window.toggleCardVisibility = function(cardId) {
+    const card = document.getElementById(cardId);
+    if (card) card.classList.toggle('hidden-card');
+}
+window.showAllSections = function() {
+    document.querySelectorAll('.card').forEach(card => card.classList.remove('hidden-card'));
+}
+
+function addAlertMessage(text, type = "info") {
+    const box = document.getElementById('alertMessagesBox');
+    if (box.innerHTML.includes("⏳ Waiting for price moves")) box.innerHTML = "";
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `alert-item ${type === 'warning' ? 'warning' : 'info'}`;
+    const timeStr = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    msgDiv.innerHTML = `<span>🔊 ${text}</span><span class="alert-time">${timeStr}</span>`;
+    box.prepend(msgDiv);
+    while (box.children.length > 20) box.removeChild(box.lastChild);
+    setTimeout(() => {
+        if (msgDiv && msgDiv.parentNode) msgDiv.remove();
+        if (box.children.length === 0) {
+            box.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:8px;">⏳ Waiting for price moves or signals...</div>';
+        }
+    }, 300000);
+}
+
+function triggerVoiceAndAlert(message, type = "info") {
+    addAlertMessage(message, type);
+    if (!voiceMuted) {
+        try {
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.rate = 0.95;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+        } catch(e) {}
+    }
+}
+
+function saveState() {
+    localStorage.setItem('balance', balance);
+    localStorage.setItem('realizedPnL', realizedPnL);
+    localStorage.setItem('totalTrades', totalTradesClosed);
+    localStorage.setItem('totalWins', totalWins);
+    localStorage.setItem('activeTrades', JSON.stringify(Array.from(activeTrades.entries())));
+    localStorage.setItem('signalLog', JSON.stringify(signalLog.slice(0,20)));
+}
+
+function loadState() {
+    try {
+        balance = parseFloat(localStorage.getItem('balance')) || 10000;
+        realizedPnL = parseFloat(localStorage.getItem('realizedPnL')) || 0;
+        totalTradesClosed = parseInt(localStorage.getItem('totalTrades')) || 0;
+        totalWins = parseInt(localStorage.getItem('totalWins')) || 0;
+        let saved = localStorage.getItem('activeTrades');
+        if(saved) activeTrades = new Map(JSON.parse(saved));
+        let logs = localStorage.getItem('signalLog');
+        if(logs) signalLog = JSON.parse(logs);
+    } catch(e){}
+}
+
+function fmtPrice(p){ return p? (p<0.01?p.toFixed(5):p<1?p.toFixed(4):p.toFixed(2)) : "0.00"; }
+
+function calcRSI(prices, period=14) {
+    if(!prices || prices.length<period+2) return 50;
+    let gains=0, losses=0;
+    for(let i=1; i<=period; i++){
+        let diff = prices[i]-prices[i-1];
+        if(diff>=0) gains+=diff; else losses-=diff;
+    }
+    let avgGain=gains/period, avgLoss=losses/period;
+    for(let i=period+1; i<prices.length; i++){
+        let diff=prices[i]-prices[i-1];
+        if(diff>=0) avgGain=(avgGain*(period-1)+diff)/period;
+        else avgLoss=(avgLoss*(period-1)-diff)/period;
+    }
+    if(avgLoss===0) return avgGain === 0 ? 50 : 100;
+    let rs=avgGain/avgLoss;
+    return 100 - (100/(1+rs));
+}
+
+function calcEMA(prices, period){
+    if(prices.length<period) return null;
+    let k=2/(period+1);
+    let ema=prices.slice(0,period).reduce((a,b)=>a+b,0)/period;
+    for(let i=period; i<prices.length; i++) ema = prices[i]*k + ema*(1-k);
+    return ema;
+}
+
+async function getBtcTrend(){
+    try{
+        let res=await fetch(`${BINANCE}/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=50`);
+        let c=await res.json();
+        let closes=c.map(x=>parseFloat(x[4]));
+        let rsi=calcRSI(closes,14);
+        let ema9=calcEMA(closes,9), ema21=calcEMA(closes,21);
+        let bullish=(rsi>52 && ema9>ema21) || (ema9>ema21 && rsi>48);
+        btcTrend = bullish ? "BULLISH" : "BEARISH";
+        let badge=document.getElementById('btcTrendBadge');
+        badge.innerText = btcTrend === "BULLISH" ? "📈 BULLISH (LONG ONLY)" : "📉 BEARISH (SHORT ONLY)";
+        badge.className = btcTrend==="BULLISH"?"trend-badge trend-bullish":"trend-badge trend-bearish";
+    }catch(e){}
+}
+
+async function scanCoin(symbol){
+    try{
+        let [klineRes, fundRes, depthRes] = await Promise.all([
+            fetch(`${BINANCE}/fapi/v1/klines?symbol=${symbol}&interval=1h&limit=50`),
+            fetch(`${BINANCE}/fapi/v1/fundingRate?symbol=${symbol}&limit=1`),
+            fetch(`${BINANCE}/fapi/v1/depth?symbol=${symbol}&limit=20`)
+        ]);
+        let candles = await klineRes.json();
+        if(!candles || candles.length<30) return null;
+        let closes = candles.map(c=>parseFloat(c[4]));
+        let currentPrice = closes[closes.length-1];
+        let rsi14 = calcRSI(closes,14);
+        let rsi7 = calcRSI(closes,7);
+        let ema9 = calcEMA(closes,9);
+        let ema21 = calcEMA(closes,21);
+        let emaTrend = (ema9 && ema21) ? (ema9>ema21 ? "↑ Bull" : "↓ Bear") : "Flat";
+        
+        let buyVol=0, sellVol=0;
+        candles.slice(-24).forEach(c=>{
+            let vol=parseFloat(c[7]);
+            if(parseFloat(c[4]) > parseFloat(c[1])) buyVol+=vol;
+            else sellVol+=vol;
+        });
+        let totalVol=buyVol+sellVol;
+        let cvdPct = totalVol>0 ? ((buyVol-sellVol)/totalVol)*100 : 0;
+        let cvdDisplay = (cvdPct>=0?"+":"")+cvdPct.toFixed(1)+"%";
+        
+        let depth=await depthRes.json();
+        let bidQty = depth.bids ? depth.bids.reduce((s,b)=>s+parseFloat(b[1]),0) : 0;
+        let askQty = depth.asks ? depth.asks.reduce((s,a)=>s+parseFloat(a[1]),0) : 0;
+        let obPct = (bidQty+askQty)>0 ? (bidQty/(bidQty+askQty))*100 : 50;
+        let obDisplay = obPct.toFixed(1)+"%";
+        
+        let fundRate=0;
+        let fundData = await fundRes.json();
+        if(fundData && fundData.length) fundRate = parseFloat(fundData[0].fundingRate)*100;
+        let fundDisplay = (fundRate>=0?"+":"")+fundRate.toFixed(4)+"%";
+        
+        let tr=[]; for(let i=1;i<candles.length;i++) tr.push(Math.max(parseFloat(candles[i][2])-parseFloat(candles[i][3]), Math.abs(parseFloat(candles[i][2])-parseFloat(candles[i-1][4])), Math.abs(parseFloat(candles[i][3])-parseFloat(candles[i-1][4]))));
+        let atr = tr.slice(-14).reduce((a,b)=>a+b,0)/14;
+        
+        let side=null;
+        if(btcTrend==="BULLISH" && rsi14 < 45) side="LONG";
+        else if(btcTrend==="BEARISH" && rsi14 > 55) side="SHORT";
+        if(!side) return null;
+        
+        let slDist = atr * 1.4;
+        let tpDist = slDist * 2.0;
+        let sl = side==="LONG"? currentPrice - slDist : currentPrice + slDist;
+        let tp = side==="LONG"? currentPrice + tpDist : currentPrice - tpDist;
+        
+        let score=0;
+        if(side==="LONG"){
+            if(rsi14<35) score+=3; else if(rsi14<42) score+=2;
+            if(ema9 && ema21 && ema9>ema21) score+=2;
+            if(cvdPct>5) score+=2; else if(cvdPct>1) score+=1;
+            if(obPct>55) score+=2; else if(obPct>52) score+=1;
+            if(fundRate < 0.01) score+=1;
+        } else {
+            if(rsi14>65) score+=3; else if(rsi14>58) score+=2;
+            if(ema9 && ema21 && ema9<ema21) score+=2;
+            if(cvdPct<-5) score+=2; else if(cvdPct<-1) score+=1;
+            if(obPct<45) score+=2; else if(obPct<48) score+=1;
+            if(fundRate > -0.01) score+=1;
+        }
+        score = Math.min(10,Math.max(0,score));
+        let confidence = Math.min(96, 55 + Math.floor(score * 4.1));
+        
+        return {
+            symbol, side, entryPrice: currentPrice, sl, tp,
+            rsi14: rsi14.toFixed(1), rsi7: rsi7.toFixed(1), emaTrend,
+            cvd: cvdDisplay, ob: obDisplay, fund: fundDisplay,
+            score, confidence, leverage:3, tradeSize:500, margin:166.67,
+            currentPrice, pnlPct:0, floatingPnL:0
+        };
+    } catch(e){ return null; }
+}
+
+async function runBotScan(){
+    if(activeTrades.size >= 6) return;
+    document.getElementById('scannedCount').innerText = ALL_SYMBOLS.length;
+    await getBtcTrend();
+    let targetList = document.getElementById('coinSelect').value;
+    let symbols = targetList === "ALL" ? ALL_SYMBOLS : [targetList];
+    for(let sym of symbols){
+        if(activeTrades.has(sym)) continue;
+        if(activeTrades.size >= 6) break;
+        let signal = await scanCoin(sym);
+        if(signal){
+            activeTrades.set(sym, signal);
+            signalLog.unshift({
+                time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+                symbol: signal.symbol, side: signal.side,
+                rsi14: signal.rsi14, rsi7: signal.rsi7, ema: signal.emaTrend,
+                cvd: signal.cvd, ob: signal.ob, funding: signal.fund,
+                score: signal.score, confidence: signal.confidence,
+                entry: signal.entryPrice, sl: signal.sl, tp: signal.tp,
+                result: "OPEN"
+            });
+            if(signalLog.length>20) signalLog = signalLog.slice(0,20);
+            saveState();
+            triggerVoiceAndAlert(`${signal.side} signal on ${signal.symbol.replace("USDT","")}`, "info");
+            break;
+        }
+    }
+    updateUI();
+}
+
+function updateUI(){
+    let floating = 0;
+    for(let t of activeTrades.values()) floating += t.floatingPnL;
+    document.getElementById('balanceVal').innerHTML = `$${(balance+floating).toFixed(2)}`;
+    document.getElementById('floatPnL').innerHTML = `${floating>=0?'+':''}$${floating.toFixed(2)}`;
+    document.getElementById('floatPnL').style.color = floating>=0?'#10b981':'#ef4444';
+    document.getElementById('realPnL').innerHTML = `${realizedPnL>=0?'+':''}$${realizedPnL.toFixed(2)}`;
+    let winRate = totalTradesClosed>0 ? ((totalWins/totalTradesClosed)*100).toFixed(1) : 0;
+    document.getElementById('winRate').innerHTML = `${winRate}%`;
+    document.getElementById('totalTrades').innerHTML = totalTradesClosed;
+    document.getElementById('activeCount').innerHTML = `${activeTrades.size}/6`;
+    
+    let tbody = document.getElementById('activeTbody');
+    if(activeTrades.size===0) tbody.innerHTML='<tr><td colspan="12">No active positions</td></tr>';
+    else {
+        let idx=1;
+        tbody.innerHTML = Array.from(activeTrades.values()).map(t=>`
+            <tr>
+                <td>${idx++}</td><td class="coin-clickable" onclick="loadChart('${t.symbol}')">${t.symbol}</td>
+                <td style="color:${t.side==='LONG'?'#10b981':'#ef4444'}">${t.side}</td>
+                <td>$${fmtPrice(t.entryPrice)}</td><td>$${fmtPrice(t.currentPrice)}</td>
+                <td>$${t.tradeSize}</td><td>$${t.margin.toFixed(2)}</td><td>${t.leverage}x</td>
+                <td style="color:#ef4444">$${fmtPrice(t.sl)}</td><td style="color:#10b981">$${fmtPrice(t.tp)}</td>
+                <td class="${t.pnlPct>=0?'positive':'negative'}">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</td>
+                <td><button class="btn" style="padding:2px 8px;" onclick="closeTrade('${t.symbol}')">CLOSE</button></td>
+            </tr>
+        `).join('');
+    }
+    
+    let logBody = document.getElementById('signalLogTbody');
+    if(signalLog.length===0) logBody.innerHTML='<tr><td colspan="15">No signals yet</td></tr>';
+    else {
+        logBody.innerHTML = signalLog.map(s=>`
+            <tr>
+                <td>${s.time}</td><td class="coin-clickable" onclick="loadChart('${s.symbol}')"><b>${s.symbol}</b></td>
+                <td style="color:${s.side==='LONG'?'#10b981':'#ef4444'}">${s.side}</td>
+                <td class="positive">${s.rsi14}</td><td style="color:#0284c7">${s.rsi7}</td>
+                <td style="color:${s.ema.includes('Bull')?'#10b981':'#ef4444'}">${s.ema}</td>
+                <td class="${s.cvd.startsWith('-')?'negative':'positive'}">${s.cvd}</td><td>${s.ob}</td><td>${s.funding}</td>
+                <td style="color:#eab308">${s.score}/10</td><td>${s.confidence}%</td>
+                <td>$${fmtPrice(s.entry)}</td><td style="color:#ef4444">$${fmtPrice(s.sl)}</td><td style="color:#10b981">$${fmtPrice(s.tp)}</td>
+                <td><span class="trend-badge ${s.result==='OPEN'?'trend-neutral':s.result==='WIN'?'trend-bullish':'trend-bearish'}">${s.result}</span></td>
+            </tr>
+        `).join('');
+    }
+}
+
+async function monitorPrices(){
+    try{
+        let res = await fetch(`${BINANCE}/fapi/v1/ticker/price`);
+        let prices = await res.json();
+        let now = Date.now();
+        for(let p of prices){
+            let sym = p.symbol;
+            if(!ALL_SYMBOLS.includes(sym)) continue;
+            let cp = parseFloat(p.price);
+            if(activeTrades.has(sym)){
+                let t = activeTrades.get(sym);
+                t.currentPrice = cp;
+                let raw = t.side==="LONG" ? ((cp-t.entryPrice)/t.entryPrice)*100 : ((t.entryPrice-cp)/t.entryPrice)*100;
+                t.pnlPct = raw * t.leverage;
+                t.floatingPnL = (t.tradeSize * t.pnlPct)/100;
+                let slHit = t.side==="LONG"? cp<=t.sl : cp>=t.sl;
+                let tpHit = t.side==="LONG"? cp>=t.tp : cp<=t.tp;
+                if(slHit || tpHit){
+                    let win = tpHit;
+                    realizedPnL += t.floatingPnL;
+                    balance += t.floatingPnL;
+                    totalTradesClosed++;
+                    if(win) totalWins++;
+                    signalLog = signalLog.map(entry=> (entry.symbol===sym && entry.result==="OPEN") ? {...entry, result: win?"WIN":"LOSS"} : entry);
+                    activeTrades.delete(sym);
+                    saveState();
+                    triggerVoiceAndAlert(`${sym} ${win?"TP hit ✅":"SL hit ❌"} ${win?"profit":"loss"}`, win?"info":"warning");
+                }
+            }
+            if(lastPrices.has(sym) && now - lastPrices.get(sym).time >= 60000){
+                let oldPrice = lastPrices.get(sym).price;
+                let movePercent = ((cp - oldPrice) / oldPrice) * 100;
+                if(Math.abs(movePercent) >= 1.2){
+                    let direction = movePercent > 0 ? "pump 🔥" : "dump 📉";
+                    let coinName = sym.replace("USDT","");
+                    triggerVoiceAndAlert(`${coinName} ${direction} ${movePercent.toFixed(1)}% in 1m`, "warning");
+                }
+            }
+            lastPrices.set(sym, {price:cp, time:now});
+        }
+        updateUI();
+    }catch(e){}
+}
+
+async function fetchMetrics(){
+    try{
+        let btcCloseRes = await fetch(`${BINANCE}/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=100`);
+        let btcData = await btcCloseRes.json();
+        let btcClose = btcData.map(x=>parseFloat(x[4]));
+        if(btcClose){
+            document.getElementById('btcRsi14').innerText = calcRSI(btcClose,14).toFixed(2);
+            document.getElementById('btcRsi7').innerText = calcRSI(btcClose,7).toFixed(2);
+        }
+        let atrCRes = await fetch(`${BINANCE}/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=30`);
+        let atrC = await atrCRes.json();
+        let tr=[]; for(let i=1;i<atrC.length;i++) tr.push(Math.max(parseFloat(atrC[i][2])-parseFloat(atrC[i][3]), Math.abs(parseFloat(atrC[i][2])-parseFloat(atrC[i-1][4])), Math.abs(parseFloat(atrC[i][3])-parseFloat(atrC[i-1][4]))));
+        let atr=tr.slice(-14).reduce((a,b)=>a+b,0)/14;
+        let price=parseFloat(atrC[atrC.length-1][4]);
+        document.getElementById('atrPct').innerHTML = ((atr/price)*100).toFixed(2)+"%";
+        document.getElementById('slLongVal').innerHTML = `$${(price-atr*1.5).toFixed(2)}`;
+        
+        let oiRes = await fetch(`${BINANCE}/fapi/v1/openInterest?symbol=BTCUSDT`);
+        let oi = await oiRes.json();
+        let oiVal = (parseFloat(oi.openInterest)*price/1e9).toFixed(2);
+        document.getElementById('oiVal').innerHTML = `$${oiVal}B`;
+        
+        let frRes = await fetch(`${BINANCE}/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1`);
+        let fr = await frRes.json();
+        if(fr.length) document.getElementById('fundVal').innerHTML = `${(parseFloat(fr[0].fundingRate)*100).toFixed(4)}%`;
+        
+        let cvdCRes = await fetch(`${BINANCE}/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=24`);
+        let cvdC = await cvdCRes.json();
+        let bv=0,sv=0,cvd=0;
+        cvdC.forEach(x=>{let v=parseFloat(x[7]); if(parseFloat(x[4])>parseFloat(x[1])){bv+=v;cvd+=v;}else{sv+=v;cvd-=v;}});
+        document.getElementById('cvdNum').innerHTML = cvd.toFixed(0);
+        document.getElementById('buyVolM').innerHTML = `$${(bv/1e6).toFixed(1)}M`;
+        document.getElementById('sellVolM').innerHTML = `$${(sv/1e6).toFixed(1)}M`;
+    }catch(e){}
+}
+
+async function loadMatrix(){
+    let data=[];
+    for(let sym of ALL_SYMBOLS.slice(0,50)){
+        try{
+            let res=await fetch(`${BINANCE}/fapi/v1/klines?symbol=${sym}&interval=1h&limit=20`);
+            let c=await res.json();
+            if(c && c.length){
+                let closes=c.map(x=>parseFloat(x[4]));
+                let price=closes[closes.length-1];
+                let open=parseFloat(c[0][1]);
+                let change=((price-open)/open)*100;
+                let rsi=calcRSI(closes,14);
+                data.push({symbol:sym, price, change, rsi});
+            }
+        }catch(e){}
+    }
+    function renderMatrix(){
+        let filter=document.getElementById('matrixFilter').value.toUpperCase();
+        let filtered=data.filter(d=>d.symbol.includes(filter));
+        let tbody=document.getElementById('matrixTbody');
+        tbody.innerHTML=filtered.map((d,i)=>`<tr><td>${i+1}</td><td class="coin-clickable" onclick="loadChart('${d.symbol}')">${d.symbol}</td><td>$${fmtPrice(d.price)}</td><td class="${d.change>=0?'positive':'negative'}">${d.change.toFixed(2)}%</td><td>${d.rsi.toFixed(1)}</td><td><span class="trend-badge ${d.change>=0?'trend-bullish':'trend-bearish'}">${d.change>=0?'BUY ZONE':'SELL ZONE'}</span></td></tr>`).join('');
+    }
+    renderMatrix();
+    document.getElementById('matrixFilter').addEventListener('input',renderMatrix);
+}
+
+function loadChart(symbol){
+    if(tvWidget) try{tvWidget.remove();}catch(e){}
+    tvWidget = new TradingView.widget({width:"100%",height:"100%",symbol:"BINANCE:"+symbol,interval:"60",theme:"light",container_id:"tvChartContainer",studies:["RSI@tv-basicstudies"]});
+    document.getElementById('chartSymbol').innerText = symbol;
+}
+
+window.closeTrade = function(symbol){
+    if(!activeTrades.has(symbol)) return;
+    let t = activeTrades.get(symbol);
+    realizedPnL += t.floatingPnL;
+    balance += t.floatingPnL;
+    totalTradesClosed++;
+    if(t.floatingPnL > 0) totalWins++;
+    signalLog = signalLog.map(entry=> (entry.symbol===symbol && entry.result==="OPEN")? {...entry, result: t.floatingPnL>=0?"WIN":"LOSS"} : entry);
+    activeTrades.delete(symbol);
+    saveState();
+    updateUI();
+    triggerVoiceAndAlert(`${symbol} manually closed`, "info");
+};
+
+window.resetAll = function(){
+    activeTrades.clear();
+    signalLog = [];
+    balance=10000; realizedPnL=0; totalTradesClosed=0; totalWins=0;
+    saveState();
+    updateUI();
+    triggerVoiceAndAlert("All positions and history reset", "warning");
+};
+
+window.toggleVoice = function(){
+    voiceMuted = !voiceMuted;
+    document.getElementById('voiceBtn').innerText = voiceMuted ? "🔇 VOICE OFF" : "🔊 VOICE ON";
+    triggerVoiceAndAlert(voiceMuted ? "Voice alerts muted" : "Voice alerts enabled", "info");
+};
+
+document.getElementById('refreshBtn').onclick = ()=>{ fetchMetrics(); loadMatrix(); getBtcTrend(); };
+document.getElementById('resetBtn').onclick = ()=>window.resetAll();
+document.getElementById('scanBtn').onclick = ()=>runBotScan();
+document.getElementById('voiceBtn').onclick = ()=>window.toggleVoice();
+document.getElementById('applyChartBtn').onclick = ()=>{ let val=document.getElementById('chartInput').value.trim().toUpperCase(); if(val) loadChart(val+"USDT"); };
+document.getElementById('showAllBtn').onclick = ()=>window.showAllSections();
+
+(async ()=>{
+    loadState();
+    await getBtcTrend();
+    await fetchMetrics();
+    loadMatrix();
+    loadChart("BTCUSDT");
+    setInterval(monitorPrices, 4000);
+    setInterval(()=>{ runBotScan(); fetchMetrics(); }, 60000);
+    updateUI();
+    let select = document.getElementById('coinSelect');
+    ALL_SYMBOLS.forEach(s=>{ let opt=document.createElement('option'); opt.value=s; opt.innerText=s; select.appendChild(opt); });
+})();
+</script>
+</body>
+</html>
